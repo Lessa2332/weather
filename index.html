@@ -12,6 +12,9 @@
     <script src="https://8thwall.org/coaching-overlay/coaching-overlay.js"></script>
     <script async src="https://8thwall.org/xrweb?selfHosted=true"></script>
 
+    <!-- Ваш окремий компонент центрування -->
+    <script src="./sky-recenter.js"></script>
+
     <style>
       .weather-panel {
         position: fixed;
@@ -92,24 +95,13 @@
       <button class="weather-btn" data-weather="stormy">⛈️ Гроза</button>
     </div>
 
-    <!-- Приховані аудіоелементи для звуків -->
+    <!-- Приховані аудіоелементи -->
     <audio id="soundSunny"  src="./sounds/sunny.mp3"  preload="auto"></audio>
     <audio id="soundCloudy" src="./sounds/cloudy.mp3" preload="auto"></audio>
     <audio id="soundRainy"  src="./sounds/rainy.mp3"  preload="auto"></audio>
     <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto"></audio>
 
     <script>
-      // Компонент sky-recenter
-      AFRAME.registerComponent('sky-recenter', {
-        init() {
-          const recenter = () => {
-            this.el.emit('recenter')
-            this.el.removeEventListener('sky-coaching-overlay.hide', recenter)
-          }
-          this.el.addEventListener('sky-coaching-overlay.hide', recenter)
-        },
-      })
-
       // Логіка зміни погоди та відтворення звуку
       const skyEntity = document.getElementById('weatherSky');
       const weatherMap = {
@@ -123,20 +115,17 @@
         const w = weatherMap[weatherType];
         if (!w) return;
         
-        // Змінюємо текстуру неба
         skyEntity.setAttribute('material', 'src', w.textureId);
         
-        // Відтворюємо звук
         const audio = document.getElementById(w.soundId);
         if (audio) {
-          audio.currentTime = 0; // скидаємо на початок, якщо звук уже грав
+          audio.currentTime = 0;
           audio.play().catch(e => console.warn('Аудіо не відтворено:', e));
         }
         
         console.log(`Погода змінена на: ${weatherType}`);
       }
 
-      // Додаємо обробники кліків на кнопки
       document.querySelectorAll('.weather-btn').forEach(btn => {
         btn.addEventListener('click', () => setWeather(btn.getAttribute('data-weather')));
       });
