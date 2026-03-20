@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <title>8th Wall: Дитяча погода в небі (локальні текстури)</title>
+    <title>8th Wall: Дитяча погода в небі (PNG + звуки)</title>
 
     <!-- Бібліотеки 8th Wall (відкрита версія) -->
     <script src="https://8thwall.org/aframe/8frame-1.5.0.min.js"></script>
@@ -58,11 +58,11 @@
         xrlayers>
 
         <a-assets>
-          <!-- Локальні текстури (шляхи відносно кореня репозиторію) -->
-          <img id="skySunny"   src="./assets/sunny.jpg">
-          <img id="skyCloudy"  src="./assets/cloudy.jpg">
-          <img id="skyRainy"   src="./assets/rainy.jpg">
-          <img id="skyStormy"  src="./assets/stormy.jpg">
+          <!-- Локальні текстури PNG -->
+          <img id="skySunny"   src="./assets/sunny.png">
+          <img id="skyCloudy"  src="./assets/cloudy.png">
+          <img id="skyRainy"   src="./assets/rainy.png">
+          <img id="skyStormy"  src="./assets/stormy.png">
           <img id="skyDefault" src="./assets/space.png">
         </a-assets>
 
@@ -92,8 +92,14 @@
       <button class="weather-btn" data-weather="stormy">⛈️ Гроза</button>
     </div>
 
+    <!-- Приховані аудіоелементи для звуків -->
+    <audio id="soundSunny"  src="./sounds/sunny.mp3"  preload="auto"></audio>
+    <audio id="soundCloudy" src="./sounds/cloudy.mp3" preload="auto"></audio>
+    <audio id="soundRainy"  src="./sounds/rainy.mp3"  preload="auto"></audio>
+    <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto"></audio>
+
     <script>
-      // Компонент sky-recenter (якщо використовується в сцені)
+      // Компонент sky-recenter
       AFRAME.registerComponent('sky-recenter', {
         init() {
           const recenter = () => {
@@ -104,21 +110,33 @@
         },
       })
 
-      // Логіка зміни погоди
+      // Логіка зміни погоди та відтворення звуку
       const skyEntity = document.getElementById('weatherSky');
       const weatherMap = {
-        sunny: '#skySunny',
-        cloudy: '#skyCloudy',
-        rainy: '#skyRainy',
-        stormy: '#skyStormy'
+        sunny: { textureId: '#skySunny',  soundId: 'soundSunny' },
+        cloudy: { textureId: '#skyCloudy', soundId: 'soundCloudy' },
+        rainy:  { textureId: '#skyRainy',  soundId: 'soundRainy' },
+        stormy: { textureId: '#skyStormy', soundId: 'soundStormy' }
       };
 
       function setWeather(weatherType) {
-        if (!weatherMap[weatherType]) return;
-        skyEntity.setAttribute('material', 'src', weatherMap[weatherType]);
+        const w = weatherMap[weatherType];
+        if (!w) return;
+        
+        // Змінюємо текстуру неба
+        skyEntity.setAttribute('material', 'src', w.textureId);
+        
+        // Відтворюємо звук
+        const audio = document.getElementById(w.soundId);
+        if (audio) {
+          audio.currentTime = 0; // скидаємо на початок, якщо звук уже грав
+          audio.play().catch(e => console.warn('Аудіо не відтворено:', e));
+        }
+        
         console.log(`Погода змінена на: ${weatherType}`);
       }
 
+      // Додаємо обробники кліків на кнопки
       document.querySelectorAll('.weather-btn').forEach(btn => {
         btn.addEventListener('click', () => setWeather(btn.getAttribute('data-weather')));
       });
