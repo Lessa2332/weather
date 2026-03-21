@@ -5,17 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <title>8th Wall: Дитяча погода в небі</title>
 
-    <!-- 1. Підключаємо self-hosted двигун (без app key!) -->
-    <script src="./xr-standalone/xrweb.js" data-preload-chunks="slam"></script>
+    <!-- Self-hosted 8th Wall core modules (без app key) -->
+    <script src="./xr-standalone/xr.js"></script>
+    <script src="./xr-standalone/xr-slam.js"></script>
 
-    <!-- 2. A-Frame та 8th Wall A-Frame компоненти -->
+    <!-- A-Frame та 8th Wall A-Frame компоненти (з відкритого CDN) -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://8thwall.org/aframe/8frame-1.5.0.min.js"></script>
 
-    <!-- 3. XRExtras (ті самі, що й раніше) -->
+    <!-- XRExtras (ті самі, що й раніше) -->
     <script src="https://8thwall.org/xrextras/xrextras.js"></script>
     <script src="https://8thwall.org/xrextras/landing-page.js"></script>
     <script src="https://8thwall.org/xrextras/coaching-overlay.js"></script>
+
+    <!-- Підключаємо ваш компонент sky-recenter (якщо він є) -->
+    <script src="./sky-recenter.js"></script>
 
     <style>
       .weather-panel {
@@ -66,11 +70,10 @@
     </style>
   </head>
   <body>
-    <div id="status">⏳ Завантаження двигуна...</div>
+    <div id="status">⏳ Завантаження...</div>
 
-    <!-- 4. A-Frame сцена з новими атрибутами -->
+    <!-- A-Frame сцена без атрибута xrweb (ініціалізація через скрипти) -->
     <a-scene 
-      xrweb=""
       xrextras-loading
       xrextras-runtime-error
       landing-page
@@ -119,20 +122,6 @@
         console.log(msg);
       }
 
-      // Реєстрація компонента sky-recenter (залишаємо як є)
-      if (typeof AFRAME !== 'undefined') {
-        AFRAME.registerComponent('sky-recenter', {
-          init() {
-            const recenter = () => {
-              this.el.emit('recenter');
-              this.el.removeEventListener('sky-coaching-overlay.hide', recenter);
-            };
-            this.el.addEventListener('sky-coaching-overlay.hide', recenter);
-          },
-        });
-        setStatus('✅ Компонент sky-recenter зареєстровано');
-      }
-
       // Функція зміни погоди
       const skyEntity = document.getElementById('weatherSky');
       const weatherMap = {
@@ -160,20 +149,23 @@
         btn.addEventListener('click', () => setWeather(btn.getAttribute('data-weather')));
       });
 
-      // Очікуємо завантаження XR8
-      function onXrLoaded() {
-        setStatus('🎥 Камера активована. Наведіть на горизонтальну поверхню.');
-      }
-
-      if (typeof XR8 !== 'undefined') {
-        window.addEventListener('xrloaded', onXrLoaded);
-        // Якщо XR8 вже завантажено
-        if (XR8.XrController) {
-          onXrLoaded();
+      // Очікування завантаження XR8
+      function waitForXR8() {
+        if (typeof XR8 !== 'undefined') {
+          setStatus('✅ XR8 готовий. Камера активується...');
+          window.addEventListener('xrloaded', () => {
+            setStatus('🎥 Камера активована. Наведіть на горизонтальну поверхню.');
+          });
+          // Якщо XR8 вже ініціалізовано, викликаємо подію вручну
+          if (XR8.XrController && XR8.XrController.isReady) {
+            window.dispatchEvent(new Event('xrloaded'));
+          }
+        } else {
+          setStatus('⏳ Очікування XR8...');
+          setTimeout(waitForXR8, 500);
         }
-      } else {
-        setStatus('❌ XR8 не завантажився. Перевірте шлях до xrweb.js');
       }
+      waitForXR8();
     </script>
   </body>
 </html>
