@@ -79,7 +79,6 @@
         </a-entity>
     </a-scene>
 
-    <!-- Інтерфейс кнопок -->
     <div class="weather-panel">
       <button class="weather-btn" data-weather="sunny">☀️ Сонячно</button>
       <button class="weather-btn" data-weather="cloudy">☁️ Хмарно</button>
@@ -87,25 +86,47 @@
       <button class="weather-btn" data-weather="stormy">⛈️ Гроза</button>
     </div>
 
-    <!-- Приховані аудіоелементи -->
     <audio id="soundSunny"  src="./sounds/sunny.mp3"  preload="auto"></audio>
     <audio id="soundCloudy" src="./sounds/cloudy.mp3" preload="auto"></audio>
     <audio id="soundRainy"  src="./sounds/rainy.mp3"  preload="auto"></audio>
     <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto"></audio>
 
     <script>
-      // Реєструємо компонент центрування (замість окремого файлу)
-      AFRAME.registerComponent('sky-recenter', {
-        init() {
-          const recenter = () => {
-            this.el.emit('recenter')
-            this.el.removeEventListener('sky-coaching-overlay.hide', recenter)
-          }
-          this.el.addEventListener('sky-coaching-overlay.hide', recenter)
-        },
-      });
+      // Функція, яка зареєструє компонент sky-recenter, коли AFRAME з'явиться
+      function registerComponent() {
+        if (typeof AFRAME !== 'undefined') {
+          AFRAME.registerComponent('sky-recenter', {
+            init() {
+              const recenter = () => {
+                this.el.emit('recenter');
+                this.el.removeEventListener('sky-coaching-overlay.hide', recenter);
+              };
+              this.el.addEventListener('sky-coaching-overlay.hide', recenter);
+            },
+          });
+          console.log('✅ Компонент sky-recenter зареєстровано');
+          return true;
+        } else {
+          console.warn('⏳ AFRAME ще не завантажено, спроба через 100 мс...');
+          return false;
+        }
+      }
 
-      // Логіка зміни погоди та відтворення звуку
+      // Чекаємо завантаження сторінки та повторюємо реєстрацію кожні 100 мс
+      let attempts = 0;
+      function waitForAFRAME() {
+        if (registerComponent()) return;
+        attempts++;
+        if (attempts > 50) {
+          console.error('❌ Не вдалося завантажити A-Frame. Перевірте мережу або спробуйте інший браузер.');
+          return;
+        }
+        setTimeout(waitForAFRAME, 100);
+      }
+
+      window.addEventListener('load', waitForAFRAME);
+
+      // Логіка зміни погоди та звуку (не залежить від AFRAME)
       const skyEntity = document.getElementById('weatherSky');
       const weatherMap = {
         sunny: { textureId: '#skySunny',  soundId: 'soundSunny' },
@@ -117,15 +138,14 @@
       function setWeather(weatherType) {
         const w = weatherMap[weatherType];
         if (!w) return;
-        
-        skyEntity.setAttribute('material', 'src', w.textureId);
-        
+        if (skyEntity) {
+          skyEntity.setAttribute('material', 'src', w.textureId);
+        }
         const audio = document.getElementById(w.soundId);
         if (audio) {
           audio.currentTime = 0;
           audio.play().catch(e => console.warn('Аудіо не відтворено:', e));
         }
-        
         console.log(`Погода змінена на: ${weatherType}`);
       }
 
