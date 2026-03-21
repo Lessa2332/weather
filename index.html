@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
   <head>
@@ -6,12 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <title>8th Wall: Дитяча погода в небі</title>
 
-    <!-- Бібліотеки 8th Wall (відкрита версія) – без selfHosted -->
+    <!-- 1. Підключаємо self-hosted двигун (без app key!) -->
+    <script src="./xr-standalone/xrweb.js" data-preload-chunks="slam"></script>
+
+    <!-- 2. A-Frame та 8th Wall A-Frame компоненти -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://8thwall.org/aframe/8frame-1.5.0.min.js"></script>
+
+    <!-- 3. XRExtras (ті самі, що й раніше) -->
     <script src="https://8thwall.org/xrextras/xrextras.js"></script>
-    <script src="https://8thwall.org/landing-page/landing-page.js"></script>
-    <script src="https://8thwall.org/coaching-overlay/coaching-overlay.js"></script>
-    <script src="https://8thwall.org/xrweb.js"></script> <!-- основний SDK -->
+    <script src="https://8thwall.org/xrextras/landing-page.js"></script>
+    <script src="https://8thwall.org/xrextras/coaching-overlay.js"></script>
 
     <style>
       .weather-panel {
@@ -59,56 +63,41 @@
         font-size: 12px;
         pointer-events: none;
       }
-      #manual-start {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #ff6600;
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        font-size: 18px;
-        border-radius: 40px;
-        z-index: 300;
-        cursor: pointer;
-        display: none;
-      }
     </style>
   </head>
   <body>
-    <div id="status">⏳ Завантаження...</div>
-    <button id="manual-start">📷 Запустити камеру</button>
+    <div id="status">⏳ Завантаження двигуна...</div>
 
+    <!-- 4. A-Frame сцена з новими атрибутами -->
     <a-scene 
-        xrextras-loading
-        xrextras-runtime-error
-        landing-page
-        sky-coaching-overlay
-        sky-recenter
-        renderer="colorManagement: true"
-        xrlayers>
+      xrweb=""
+      xrextras-loading
+      xrextras-runtime-error
+      landing-page
+      sky-coaching-overlay
+      sky-recenter
+      renderer="colorManagement: true">
 
-        <a-assets>
-          <img id="skySunny"   src="./assets/sunny.png">
-          <img id="skyCloudy"  src="./assets/cloudy.png">
-          <img id="skyRainy"   src="./assets/rainy.png">
-          <img id="skyStormy"  src="./assets/stormy.png">
-          <img id="skyDefault" src="./assets/space.png">
-        </a-assets>
+      <a-assets>
+        <img id="skySunny"   src="./assets/sunny.png">
+        <img id="skyCloudy"  src="./assets/cloudy.png">
+        <img id="skyRainy"   src="./assets/rainy.png">
+        <img id="skyStormy"  src="./assets/stormy.png">
+        <img id="skyDefault" src="./assets/space.png">
+      </a-assets>
 
-        <a-camera position="0 3 0"></a-camera>
+      <a-camera position="0 3 0"></a-camera>
 
-        <a-entity xrlayerscene="name: sky; edgeSmoothness: 0.6">
-          <a-sky id="weatherSky" material="src: #skyDefault; transparent: true; opacity: 1;"></a-sky>
-          <a-box 
-              position="0 10 -10"
-              scale="5 5 5"
-              material="color: #AD50FF; shader: flat; src: https://cdn.8thwall.com/web/assets/cube-texture.png"
-              shadow>
-          </a-box>
-          <a-entity light="type: ambient; intensity: 1;"></a-entity>
-        </a-entity>
+      <a-entity xrlayerscene="name: sky; edgeSmoothness: 0.6">
+        <a-sky id="weatherSky" material="src: #skyDefault; transparent: true; opacity: 1;"></a-sky>
+        <a-box 
+          position="0 10 -10"
+          scale="5 5 5"
+          material="color: #AD50FF; shader: flat; src: https://cdn.8thwall.com/web/assets/cube-texture.png"
+          shadow>
+        </a-box>
+        <a-entity light="type: ambient; intensity: 1;"></a-entity>
+      </a-entity>
     </a-scene>
 
     <div class="weather-panel">
@@ -124,19 +113,14 @@
     <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto"></audio>
 
     <script>
-      // Оновлення статусу
       const statusDiv = document.getElementById('status');
       function setStatus(msg) {
         statusDiv.innerHTML = msg;
         console.log(msg);
       }
 
-      // Реєстрація компонента
-      function registerSkyRecenter() {
-        if (typeof AFRAME === 'undefined') {
-          setStatus('❌ A-Frame не завантажено');
-          return false;
-        }
+      // Реєстрація компонента sky-recenter (залишаємо як є)
+      if (typeof AFRAME !== 'undefined') {
         AFRAME.registerComponent('sky-recenter', {
           init() {
             const recenter = () => {
@@ -147,19 +131,6 @@
           },
         });
         setStatus('✅ Компонент sky-recenter зареєстровано');
-        return true;
-      }
-
-      // Чекаємо A-Frame
-      let attempts = 0;
-      function waitForAFRAME() {
-        if (registerSkyRecenter()) return;
-        attempts++;
-        if (attempts > 30) {
-          setStatus('❌ Не вдалося завантажити A-Frame');
-          return;
-        }
-        setTimeout(waitForAFRAME, 200);
       }
 
       // Функція зміни погоди
@@ -189,49 +160,19 @@
         btn.addEventListener('click', () => setWeather(btn.getAttribute('data-weather')));
       });
 
-      // Перевірка готовності XR8 та запуск камери
-      function startXR() {
-        if (typeof XR8 !== 'undefined') {
-          setStatus('🎥 Запуск камери...');
-          // Викликаємо ініціалізацію, якщо вона ще не запущена
-          if (XR8.XrWeb && typeof XR8.XrWeb.start === 'function') {
-            XR8.XrWeb.start();
-          } else {
-            setStatus('⚠️ XR8.XrWeb.start не знайдено, спробуйте перезавантажити сторінку');
-          }
-        } else {
-          setStatus('❌ XR8 не знайдено. Перевірте інтернет.');
-        }
+      // Очікуємо завантаження XR8
+      function onXrLoaded() {
+        setStatus('🎥 Камера активована. Наведіть на горизонтальну поверхню.');
       }
 
-      // Коли завантажиться сторінка
-      window.addEventListener('load', () => {
-        waitForAFRAME();
-        setStatus('⏳ Очікування XR8...');
-        // Якщо через 5 секунд XR8 не з'явився, показуємо кнопку ручного запуску
-        setTimeout(() => {
-          if (typeof XR8 === 'undefined') {
-            setStatus('⚠️ XR8 не завантажився. Спробуйте запустити вручну.');
-            document.getElementById('manual-start').style.display = 'block';
-          } else {
-            setStatus('✅ XR8 готовий. Запускаємо камеру...');
-            startXR();
-          }
-        }, 5000);
-      });
-
-      // Ручний запуск
-      document.getElementById('manual-start').addEventListener('click', () => {
-        document.getElementById('manual-start').style.display = 'none';
-        startXR();
-      });
-
-      // Якщо XR8 завантажився раніше, ніж через 5 секунд
       if (typeof XR8 !== 'undefined') {
-        setTimeout(() => {
-          setStatus('✅ XR8 готовий. Запускаємо камеру...');
-          startXR();
-        }, 1000);
+        window.addEventListener('xrloaded', onXrLoaded);
+        // Якщо XR8 вже завантажено
+        if (XR8.XrController) {
+          onXrLoaded();
+        }
+      } else {
+        setStatus('❌ XR8 не завантажився. Перевірте шлях до xrweb.js');
       }
     </script>
   </body>
