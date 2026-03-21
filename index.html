@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <title>8th Wall: Дитяча погода в небі (PNG + звуки)</title>
+    <title>8th Wall: Дитяча погода в небі</title>
 
     <!-- Бібліотеки 8th Wall (відкрита версія) -->
     <script src="https://8thwall.org/aframe/8frame-1.5.0.min.js"></script>
@@ -11,9 +11,6 @@
     <script src="https://8thwall.org/landing-page/landing-page.js"></script>
     <script src="https://8thwall.org/coaching-overlay/coaching-overlay.js"></script>
     <script async src="https://8thwall.org/xrweb?selfHosted=true"></script>
-
-    <!-- Ваш окремий компонент центрування -->
-    <script src="./sky-recenter.js"></script>
 
     <style>
       .weather-panel {
@@ -61,7 +58,6 @@
         xrlayers>
 
         <a-assets>
-          <!-- Локальні текстури PNG -->
           <img id="skySunny"   src="./assets/sunny.png">
           <img id="skyCloudy"  src="./assets/cloudy.png">
           <img id="skyRainy"   src="./assets/rainy.png">
@@ -71,18 +67,14 @@
 
         <a-camera position="0 3 0"></a-camera>
 
-        <!-- Шар неба -->
         <a-entity xrlayerscene="name: sky; edgeSmoothness: 0.6">
           <a-sky id="weatherSky" material="src: #skyDefault; transparent: true; opacity: 1;"></a-sky>
-
-          <!-- Додатковий об'єкт (можна залишити або видалити) -->
           <a-box 
               position="0 10 -10"
               scale="5 5 5"
               material="color: #AD50FF; shader: flat; src: https://cdn.8thwall.com/web/assets/cube-texture.png"
               shadow>
           </a-box>
-
           <a-entity light="type: ambient; intensity: 1;"></a-entity>
         </a-entity>
     </a-scene>
@@ -102,6 +94,17 @@
     <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto"></audio>
 
     <script>
+      // Реєструємо компонент центрування (замість окремого файлу)
+      AFRAME.registerComponent('sky-recenter', {
+        init() {
+          const recenter = () => {
+            this.el.emit('recenter')
+            this.el.removeEventListener('sky-coaching-overlay.hide', recenter)
+          }
+          this.el.addEventListener('sky-coaching-overlay.hide', recenter)
+        },
+      });
+
       // Логіка зміни погоди та відтворення звуку
       const skyEntity = document.getElementById('weatherSky');
       const weatherMap = {
