@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <title>8th Wall: Дитяча погода в небі</title>
 
-    <!-- Бібліотеки 8th Wall (відкрита версія) -->
+    <!-- Бібліотеки 8th Wall (відкрита версія) – без selfHosted -->
     <script src="https://8thwall.org/aframe/8frame-1.5.0.min.js"></script>
     <script src="https://8thwall.org/xrextras/xrextras.js"></script>
     <script src="https://8thwall.org/landing-page/landing-page.js"></script>
     <script src="https://8thwall.org/coaching-overlay/coaching-overlay.js"></script>
-    <script async src="https://8thwall.org/xrweb?selfHosted=true"></script>
+    <script src="https://8thwall.org/xrweb.js"></script> <!-- основний SDK -->
 
     <style>
       .weather-panel {
@@ -45,9 +45,40 @@
       @media (max-width: 600px) {
         .weather-btn { padding: 12px 18px; font-size: 1rem; }
       }
+      #status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-family: monospace;
+        z-index: 200;
+        font-size: 12px;
+        pointer-events: none;
+      }
+      #manual-start {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #ff6600;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 18px;
+        border-radius: 40px;
+        z-index: 300;
+        cursor: pointer;
+        display: none;
+      }
     </style>
   </head>
   <body>
+    <div id="status">⏳ Завантаження...</div>
+    <button id="manual-start">📷 Запустити камеру</button>
+
     <a-scene 
         xrextras-loading
         xrextras-runtime-error
@@ -92,41 +123,45 @@
     <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto"></audio>
 
     <script>
-      // Функція, яка зареєструє компонент sky-recenter, коли AFRAME з'явиться
-      function registerComponent() {
-        if (typeof AFRAME !== 'undefined') {
-          AFRAME.registerComponent('sky-recenter', {
-            init() {
-              const recenter = () => {
-                this.el.emit('recenter');
-                this.el.removeEventListener('sky-coaching-overlay.hide', recenter);
-              };
-              this.el.addEventListener('sky-coaching-overlay.hide', recenter);
-            },
-          });
-          console.log('✅ Компонент sky-recenter зареєстровано');
-          return true;
-        } else {
-          console.warn('⏳ AFRAME ще не завантажено, спроба через 100 мс...');
+      // Оновлення статусу
+      const statusDiv = document.getElementById('status');
+      function setStatus(msg) {
+        statusDiv.innerHTML = msg;
+        console.log(msg);
+      }
+
+      // Реєстрація компонента
+      function registerSkyRecenter() {
+        if (typeof AFRAME === 'undefined') {
+          setStatus('❌ A-Frame не завантажено');
           return false;
         }
+        AFRAME.registerComponent('sky-recenter', {
+          init() {
+            const recenter = () => {
+              this.el.emit('recenter');
+              this.el.removeEventListener('sky-coaching-overlay.hide', recenter);
+            };
+            this.el.addEventListener('sky-coaching-overlay.hide', recenter);
+          },
+        });
+        setStatus('✅ Компонент sky-recenter зареєстровано');
+        return true;
       }
 
-      // Чекаємо завантаження сторінки та повторюємо реєстрацію кожні 100 мс
+      // Чекаємо A-Frame
       let attempts = 0;
       function waitForAFRAME() {
-        if (registerComponent()) return;
+        if (registerSkyRecenter()) return;
         attempts++;
-        if (attempts > 50) {
-          console.error('❌ Не вдалося завантажити A-Frame. Перевірте мережу або спробуйте інший браузер.');
+        if (attempts > 30) {
+          setStatus('❌ Не вдалося завантажити A-Frame');
           return;
         }
-        setTimeout(waitForAFRAME, 100);
+        setTimeout(waitForAFRAME, 200);
       }
 
-      window.addEventListener('load', waitForAFRAME);
-
-      // Логіка зміни погоди та звуку (не залежить від AFRAME)
+      // Функція зміни погоди
       const skyEntity = document.getElementById('weatherSky');
       const weatherMap = {
         sunny: { textureId: '#skySunny',  soundId: 'soundSunny' },
@@ -146,12 +181,57 @@
           audio.currentTime = 0;
           audio.play().catch(e => console.warn('Аудіо не відтворено:', e));
         }
-        console.log(`Погода змінена на: ${weatherType}`);
+        setStatus(`Погода: ${weatherType}`);
       }
 
       document.querySelectorAll('.weather-btn').forEach(btn => {
         btn.addEventListener('click', () => setWeather(btn.getAttribute('data-weather')));
       });
+
+      // Перевірка готовності XR8 та запуск камери
+      function startXR() {
+        if (typeof XR8 !== 'undefined') {
+          setStatus('🎥 Запуск камери...');
+          // Викликаємо ініціалізацію, якщо вона ще не запущена
+          if (XR8.XrWeb && typeof XR8.XrWeb.start === 'function') {
+            XR8.XrWeb.start();
+          } else {
+            setStatus('⚠️ XR8.XrWeb.start не знайдено, спробуйте перезавантажити сторінку');
+          }
+        } else {
+          setStatus('❌ XR8 не знайдено. Перевірте інтернет.');
+        }
+      }
+
+      // Коли завантажиться сторінка
+      window.addEventListener('load', () => {
+        waitForAFRAME();
+        setStatus('⏳ Очікування XR8...');
+        // Якщо через 5 секунд XR8 не з'явився, показуємо кнопку ручного запуску
+        setTimeout(() => {
+          if (typeof XR8 === 'undefined') {
+            setStatus('⚠️ XR8 не завантажився. Спробуйте запустити вручну.');
+            document.getElementById('manual-start').style.display = 'block';
+          } else {
+            setStatus('✅ XR8 готовий. Запускаємо камеру...');
+            startXR();
+          }
+        }, 5000);
+      });
+
+      // Ручний запуск
+      document.getElementById('manual-start').addEventListener('click', () => {
+        document.getElementById('manual-start').style.display = 'none';
+        startXR();
+      });
+
+      // Якщо XR8 завантажився раніше, ніж через 5 секунд
+      if (typeof XR8 !== 'undefined') {
+        setTimeout(() => {
+          setStatus('✅ XR8 готовий. Запускаємо камеру...');
+          startXR();
+        }, 1000);
+      }
     </script>
   </body>
 </html>
