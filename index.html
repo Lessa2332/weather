@@ -7,8 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <title>Дитяча погода в небі</title>
 
-  <!-- 8th Wall Standalone Engine (з попереднім завантаженням SLAM, але він може не знадобитися) -->
-  <script async src="./xr-standalone/xr.js"></script>
+  <!-- 8th Wall Standalone Engine with SLAM preload -->
+  <script async src="./xr-standalone/xr.js" data-preload-chunks="slam"></script>
 
   <style>
     body { margin:0; overflow:hidden; font-family:'Segoe UI',sans-serif; background:#000; }
@@ -61,6 +61,7 @@
     function setStatus(msg, err = false) {
       statusDiv.innerHTML = msg;
       statusDiv.style.borderLeftColor = err ? '#ff5555' : '#00ffcc';
+      console.log(`[Status] ${msg}`);
     }
 
     // Зупинка всіх звуків
@@ -75,148 +76,187 @@
       });
     }
 
-    // Функція зміни погоди (буде доступна після запуску AR)
-    let setWeatherCallback = null;
-
     // Глобальні змінні для Three.js об'єктів
     let skyMesh = null;
     let cloudSprite = null;
     let cloudAngle = 0;
     let lastTimestamp = 0;
+    let animationId = null;
 
-    // Запуск AR (після натискання кнопки)
-    function startAR() {
-      window.addEventListener('xrloaded', () => {
-        // Конфігурація (worldTracking для відстеження позиції камери)
-        if (XR8.XrController) {
-          XR8.XrController.configure({ worldTracking: true });
-        }
+    // Функція, яка викликається після повного завантаження рушія
+    function onEngineReady() {
+      console.log('Engine ready, setting up AR scene...');
+      setStatus('🎥 Налаштування AR...');
 
-        const scene = XR8.Three.scene();
-        const camera = XR8.Three.camera();
+      // Конфігурація (worldTracking для відстеження позиції камери)
+      if (XR8.XrController) {
+        XR8.XrController.configure({ worldTracking: true });
+      }
 
-        // ----- Сфера неба -----
-        const skyGeometry = new THREE.SphereGeometry(500, 64, 64);
-        const skyMaterial = new THREE.MeshBasicMaterial({
-          map: new THREE.TextureLoader().load('./assets/space.png'),
-          transparent: true,
-          opacity: 1.0,
-          side: THREE.BackSide,
-          depthWrite: false
-        });
-        skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
-        scene.add(skyMesh);
+      const scene = XR8.Three.scene();
+      const camera = XR8.Three.camera();
 
-        // ----- Хмара (спрайт) -----
-        let cloudTexture = null;
-        const loadCloudTexture = (url) => {
-          const loader = new THREE.TextureLoader();
-          loader.load(url, 
-            (tex) => {
-              cloudTexture = tex;
+      // ----- Сфера неба -----
+      const skyGeometry = new THREE.SphereGeometry(500, 64, 64);
+      const skyMaterial = new THREE.MeshBasicMaterial({
+        map: new THREE.TextureLoader().load('./assets/space.png'),
+        transparent: true,
+        opacity: 1.0,
+        side: THREE.BackSide,
+        depthWrite: false
+      });
+      skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
+      scene.add(skyMesh);
+
+      // ----- Хмара (спрайт) -----
+      let cloudTexture = null;
+      const loadCloudTexture = (url) => {
+        const loader = new THREE.TextureLoader();
+        loader.load(url, 
+          (tex) => {
+            cloudTexture = tex;
+            if (cloudSprite) {
               cloudSprite.material.map = cloudTexture;
               cloudSprite.material.needsUpdate = true;
               cloudSprite.visible = true;
-            },
-            undefined,
-            () => {
-              // fallback: створюємо canvas текстуру
-              const canvas = document.createElement('canvas');
-              canvas.width = 256;
-              canvas.height = 256;
-              const ctx = canvas.getContext('2d');
-              ctx.fillStyle = 'rgba(0,0,0,0)';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              ctx.fillStyle = 'rgba(255,255,255,0.95)';
-              ctx.beginPath();
-              ctx.arc(128, 128, 60, 0, Math.PI * 2);
-              ctx.arc(180, 110, 50, 0, Math.PI * 2);
-              ctx.arc(80, 110, 45, 0, Math.PI * 2);
-              ctx.fill();
-              const fallbackTex = new THREE.CanvasTexture(canvas);
+            }
+          },
+          undefined,
+          () => {
+            // fallback: створюємо canvas текстуру
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0,0,0,0)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(255,255,255,0.95)';
+            ctx.beginPath();
+            ctx.arc(128, 128, 60, 0, Math.PI * 2);
+            ctx.arc(180, 110, 50, 0, Math.PI * 2);
+            ctx.arc(80, 110, 45, 0, Math.PI * 2);
+            ctx.fill();
+            const fallbackTex = new THREE.CanvasTexture(canvas);
+            if (cloudSprite) {
               cloudSprite.material.map = fallbackTex;
               cloudSprite.material.needsUpdate = true;
               cloudSprite.visible = true;
-              setStatus('☁️ Хмарка (резервна)');
             }
-          );
-        };
+            setStatus('☁️ Хмарка (резервна)');
+          }
+        );
+      };
 
-        cloudSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: null, transparent: true, opacity: 0.95 }));
-        cloudSprite.scale.set(2.5, 2.5, 1);
-        cloudSprite.visible = false;
-        scene.add(cloudSprite);
-        loadCloudTexture('./assets/cloud.png');
+      cloudSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: null, transparent: true, opacity: 0.95 }));
+      cloudSprite.scale.set(2.5, 2.5, 1);
+      cloudSprite.visible = false;
+      scene.add(cloudSprite);
+      loadCloudTexture('./assets/cloud.png');
 
-        // Анімація хмари (рух навколо камери)
-        function animateCloud(now) {
-          requestAnimationFrame(animateCloud);
-          if (!cloudSprite.visible) return;
-          const dt = Math.min(0.033, (now - lastTimestamp) / 1000);
-          lastTimestamp = now;
-          cloudAngle += 0.9 * dt; // швидкість обертання
-          const radius = 3.8;
-          const camPos = camera.getWorldPosition(new THREE.Vector3());
-          const x = camPos.x + radius * Math.cos(cloudAngle);
-          const z = camPos.z + radius * Math.sin(cloudAngle);
-          const y = camPos.y + 2.3;
-          cloudSprite.position.set(x, y, z);
-        }
-        requestAnimationFrame(animateCloud);
+      // Анімація хмари
+      function animateCloud(now) {
+        animationId = requestAnimationFrame(animateCloud);
+        if (!cloudSprite.visible) return;
+        const dt = Math.min(0.033, (now - lastTimestamp) / 1000);
+        lastTimestamp = now;
+        cloudAngle += 0.9 * dt;
+        const radius = 3.8;
+        const camPos = camera.getWorldPosition(new THREE.Vector3());
+        const x = camPos.x + radius * Math.cos(cloudAngle);
+        const z = camPos.z + radius * Math.sin(cloudAngle);
+        const y = camPos.y + 2.3;
+        cloudSprite.position.set(x, y, z);
+      }
+      animationId = requestAnimationFrame(animateCloud);
 
-        // ----- Функція зміни погоди (звуки + текстура) -----
-        const weatherMap = {
-          sunny:  { tex: './assets/sunny.png',  soundId: 'soundSunny'  },
-          cloudy: { tex: './assets/cloudy.png', soundId: 'soundCloudy' },
-          rainy:  { tex: './assets/rainy.png',  soundId: 'soundRainy'  },
-          stormy: { tex: './assets/stormy.png', soundId: 'soundStormy' }
-        };
+      // ----- Функція зміни погоди -----
+      const weatherMap = {
+        sunny:  { tex: './assets/sunny.png',  soundId: 'soundSunny'  },
+        cloudy: { tex: './assets/cloudy.png', soundId: 'soundCloudy' },
+        rainy:  { tex: './assets/rainy.png',  soundId: 'soundRainy'  },
+        stormy: { tex: './assets/stormy.png', soundId: 'soundStormy' }
+      };
 
-        function setWeather(type) {
-          const cfg = weatherMap[type];
-          if (!cfg) return;
-          // Зупиняємо всі звуки
-          stopAllSounds();
-          // Змінюємо текстуру неба
-          new THREE.TextureLoader().load(cfg.tex, (tex) => {
+      function setWeather(type) {
+        const cfg = weatherMap[type];
+        if (!cfg) return;
+        stopAllSounds();
+        new THREE.TextureLoader().load(cfg.tex, (tex) => {
+          if (skyMesh) {
             skyMesh.material.map = tex;
             skyMesh.material.needsUpdate = true;
-          });
-          // Відтворюємо звук
-          const audio = document.getElementById(cfg.soundId);
-          if (audio) {
-            audio.currentTime = 0;
-            audio.play().catch(e => console.warn('audio play blocked:', e));
           }
-          // Оновлюємо активну кнопку
-          document.querySelectorAll('.weather-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-weather') === type);
-          });
-          setStatus(`🌤️ Погода: ${type === 'sunny' ? 'Сонячно' : type === 'cloudy' ? 'Хмарно' : type === 'rainy' ? 'Дощ' : 'Гроза'}`);
+        });
+        const audio = document.getElementById(cfg.soundId);
+        if (audio) {
+          audio.currentTime = 0;
+          audio.play().catch(e => console.warn('audio play blocked:', e));
         }
+        document.querySelectorAll('.weather-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-weather') === type);
+        });
+        setStatus(`🌤️ Погода: ${type === 'sunny' ? 'Сонячно' : type === 'cloudy' ? 'Хмарно' : type === 'rainy' ? 'Дощ' : 'Гроза'}`);
+      }
 
-        // Робимо функцію доступною глобально для кнопок
-        window.setWeather = setWeather;
+      // Робимо функцію доступною глобально для кнопок
+      window.setWeather = setWeather;
 
-        // Активуємо першу кнопку за замовчуванням
-        const defaultBtn = document.querySelector('.weather-btn[data-weather="sunny"]');
-        if (defaultBtn) defaultBtn.classList.add('active');
+      // Активуємо першу кнопку за замовчуванням
+      const defaultBtn = document.querySelector('.weather-btn[data-weather="sunny"]');
+      if (defaultBtn) defaultBtn.classList.add('active');
 
-        setStatus('✅ AR запущено! Реальний світ + погода');
-      });
-
-      // Запуск рушія
-      XR8.run({ canvas: document.getElementById('xr-canvas') });
+      // Запускаємо AR сесію
+      XR8.run({ canvas: document.getElementById('xr-canvas') })
+        .then(() => {
+          setStatus('✅ AR запущено! Реальний світ + погода');
+          document.getElementById('start-btn').style.display = 'none';
+        })
+        .catch(err => {
+          console.error('XR8.run error:', err);
+          setStatus('❌ Помилка AR: ' + err.message, true);
+        });
     }
 
-    // Обробник кнопки запуску
+    // --- Ініціалізація: чекаємо xrloaded або викликаємо одразу, якщо XR8 вже готовий ---
+    let engineReady = false;
+
+    const onXrLoaded = () => {
+      if (engineReady) return;
+      engineReady = true;
+      console.log('xrloaded event received');
+      onEngineReady();
+    };
+
+    window.addEventListener('xrloaded', onXrLoaded);
+
+    // Перевірка, чи XR8 вже визначений та чи ready (можливо, xrloaded вже відбулося)
+    if (typeof XR8 !== 'undefined' && XR8.isLoaded) {
+      onXrLoaded();
+    }
+
+    // Запасний таймер на випадок, якщо подія ніколи не спрацює
+    setTimeout(() => {
+      if (!engineReady && typeof XR8 !== 'undefined') {
+        console.warn('xrloaded did not fire, attempting fallback...');
+        onXrLoaded();
+      }
+    }, 3000);
+
+    // --- Кнопка запуску AR (тепер просто запускає ініціалізацію, якщо ще не зроблено) ---
     document.getElementById('start-btn').addEventListener('click', () => {
       setStatus('🎥 Запускаємо AR...');
-      startAR();
-      document.getElementById('start-btn').style.display = 'none';
+      if (!engineReady) {
+        // Якщо рушій ще не готовий, чекаємо
+        const checkReady = setInterval(() => {
+          if (engineReady) {
+            clearInterval(checkReady);
+            // Не потрібно нічого робити, onEngineReady вже викликано
+          }
+        }, 100);
+      }
     });
 
-    // Обробники кнопок погоди (після запуску AR вони будуть працювати через window.setWeather)
+    // --- Кнопки погоди ---
     document.querySelectorAll('.weather-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         if (typeof window.setWeather === 'function') {
@@ -227,7 +267,7 @@
       });
     });
 
-    // Розблокування аудіо (перший дотик)
+    // --- Розблокування аудіо (перший дотик) ---
     function unlockAudio() {
       const audios = ['soundSunny', 'soundCloudy', 'soundRainy', 'soundStormy'];
       audios.forEach(id => {
