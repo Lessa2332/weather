@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Дитяча погода в небі</title>
 
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <!-- 8th Wall Self‑hosted Engine -->
   <script src="./xr-standalone/xr.js"></script>
+  <!-- A-Frame компонент для 8th Wall (забезпечує xrlayers) -->
   <script src="https://8thwall.org/aframe/8frame-1.5.0.min.js"></script>
+  <!-- Додатковий компонент центрування -->
   <script src="./xr-standalone/sky-recenter.js"></script>
 
   <style>
@@ -78,7 +82,7 @@
 
     <a-camera position="0 1.6 0" camera="far: 1000"></a-camera>
 
-    <!-- Шар неба (Sky Effects) -->
+    <!-- Шар неба (Sky Effects) – весь контент тут буде поверх відео -->
     <a-entity xrlayerscene="name: sky; edgeSmoothness: 0.15;">
       <a-sphere id="weatherSky"
                 radius="500"
@@ -87,7 +91,7 @@
       </a-sphere>
     </a-entity>
 
-    <!-- Рухома хмара -->
+    <!-- Рухома хмара – додаємо в той самий шар, щоб вона теж була поверх відео -->
     <a-image id="movingCloud"
              src="#cloudTexture"
              width="2" height="2"
