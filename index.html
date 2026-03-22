@@ -65,18 +65,19 @@
 
     <a-camera position="0 1.6 0"></a-camera>
 
-    <!-- Небо як велика сфера з легкою прозорістю -->
+    <!-- Небо з легкою прозорістю (0.3) – не закриває реальність -->
     <a-sphere id="weatherSky"
               radius="500"
               material="src: #skyDefault; transparent: true; opacity: 0.3; alphaTest: 0.1; side: back;"
               position="0 0 0">
     </a-sphere>
 
-    <!-- Рухома хмаринка -->
+    <!-- Рухома хмара, завжди повернута до камери -->
     <a-image id="movingCloud"
              src="#cloudTexture"
              width="1.5" height="1.5"
              material="transparent: true; alphaTest: 0.3"
+             look-at="[camera]"
              visible="false">
     </a-image>
 
@@ -109,7 +110,10 @@
     function stopAllSounds() {
       ['soundSunny', 'soundCloudy', 'soundRainy', 'soundStormy'].forEach(id => {
         const audio = document.getElementById(id);
-        if (audio && !audio.paused) { audio.pause(); audio.currentTime = 0; }
+        if (audio && !audio.paused) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
       });
     }
 
@@ -145,7 +149,7 @@
       });
     });
 
-    // Анімація хмари (запускається одразу)
+    // Анімація хмари
     const cloud = document.getElementById('movingCloud');
     let cloudAngle = 0;
     const cloudRadius = 3.2;
@@ -155,39 +159,61 @@
     function animateCloud(time) {
       requestAnimationFrame(animateCloud);
       if (!cloud || cloud.getAttribute('visible') !== 'true') return;
-
       const dt = Math.min(0.033, (time - lastTime) / 1000);
       lastTime = time;
       cloudAngle += cloudSpeed * dt;
-
       const camera = document.querySelector('a-camera')?.object3D;
       if (!camera) return;
-
       const pos = camera.getWorldPosition(new THREE.Vector3());
       const x = pos.x + cloudRadius * Math.cos(cloudAngle);
       const z = pos.z + cloudRadius * Math.sin(cloudAngle);
       const y = pos.y + 2.1;
-
       cloud.setAttribute('position', { x, y, z });
     }
     requestAnimationFrame(animateCloud);
 
-    // Завантаження хмари + fallback
+    // Завантаження хмари + повний fallback canvas
     const cloudTex = document.getElementById('cloudTexture');
     if (cloudTex.complete && cloudTex.naturalWidth !== 0) {
       cloud.setAttribute('visible', 'true');
     } else if (cloudTex) {
       cloudTex.onload = () => cloud.setAttribute('visible', 'true');
-      cloudTex.onerror = () => cloud.setAttribute('visible', 'true');
+      cloudTex.onerror = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.beginPath();
+        ctx.arc(128, 128, 60, 0, Math.PI * 2);
+        ctx.arc(180, 110, 50, 0, Math.PI * 2);
+        ctx.arc(80, 110, 45, 0, Math.PI * 2);
+        ctx.arc(150, 170, 40, 0, Math.PI * 2);
+        ctx.arc(100, 160, 35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(240,240,255,0.9)';
+        ctx.beginPath();
+        ctx.arc(140, 120, 35, 0, Math.PI * 2);
+        ctx.fill();
+        const fallbackImg = new Image();
+        fallbackImg.src = canvas.toDataURL();
+        fallbackImg.id = 'cloudFallback';
+        document.querySelector('a-assets').appendChild(fallbackImg);
+        cloud.setAttribute('src', '#cloudFallback');
+        cloud.setAttribute('visible', 'true');
+        setStatus('☁️ Резервна хмаринка створена', false);
+      };
     }
 
-    // Запуск AR з максимальним дебагом
+    // Запуск AR
     const startBtn = document.getElementById('start-btn');
     const scene = document.querySelector('a-scene');
 
     startBtn.addEventListener('click', async () => {
       if (!navigator.xr) {
-        setStatus('❌ Браузер не підтримує WebXR', true);
+        setStatus('❌ Браузер не підтримує WebXR. Спробуйте Chrome.', true);
         return;
       }
 
@@ -199,7 +225,7 @@
       }
 
       if (!supported) {
-        setStatus('❌ immersive-ar не підтримується (перевір ARCore)', true);
+        setStatus('❌ Пристрій не підтримує AR (оновіть Play Services for AR)', true);
         return;
       }
 
@@ -208,7 +234,7 @@
       try {
         await scene.enterAR();
         startBtn.style.display = 'none';
-        setStatus('✅ AR запущено! Реальний світ + погода');
+        setStatus('✅ AR активний! Реальний світ + погода в небі');
       } catch (err) {
         console.error('AR enter error:', err);
         console.error('Name:', err.name);
@@ -218,7 +244,6 @@
       }
     });
 
-    // Розблокування аудіо на взаємодію
     function unlockAudio() {
       document.querySelectorAll('audio').forEach(a => a.load());
       document.removeEventListener('touchstart', unlockAudio);
@@ -228,7 +253,7 @@
     document.addEventListener('click', unlockAudio);
 
     window.addEventListener('load', () => {
-      setStatus('✅ Готово. Натисни "Запустити AR" (дозволь камеру)');
+      setStatus('✅ Готово. Натисни "Запустити AR" та дозволь камеру');
     });
   </script>
 </body>
