@@ -4,101 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>Дитяча погода в небі</title>
-  
-  <!-- A-Frame core (includes WebXR support) -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  
+
+  <!-- A-Frame core -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <!-- або найновіша: https://aframe.io/releases/1.7.1/aframe.min.js (перевір на сумісність) -->
+
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     
     #start-btn {
-      position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #00aaff;
-      color: white;
-      border: none;
-      border-radius: 40px;
-      padding: 14px 28px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      cursor: pointer;
-      z-index: 200;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      background: #00aaff; color: white; border: none; border-radius: 40px;
+      padding: 14px 28px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
+      z-index: 200; box-shadow: 0 2px 12px rgba(0,0,0,0.3);
       transition: transform 0.2s;
     }
-    #start-btn:active {
-      transform: translateX(-50%) scale(0.96);
-    }
+    #start-btn:active { transform: translateX(-50%) scale(0.96); }
     
     .weather-panel {
-      position: fixed;
-      bottom: 20px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      z-index: 100;
-      background: rgba(0,0,0,0.7);
-      padding: 12px 20px;
-      border-radius: 60px;
-      margin: 0 auto;
-      width: fit-content;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      border: 1px solid rgba(255,255,255,0.2);
+      position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px;
+      z-index: 100; background: rgba(0,0,0,0.7); padding: 12px 20px; border-radius: 60px;
+      margin: 0 auto; width: fit-content; backdrop-filter: blur(12px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2);
     }
     
     .weather-btn {
-      background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-      border: none;
-      border-radius: 50px;
-      padding: 12px 24px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #1a2a3a;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: inherit;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      min-width: 100px;
+      background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%); border: none; border-radius: 50px;
+      padding: 12px 24px; font-size: 1.2rem; font-weight: bold; color: #1a2a3a; cursor: pointer;
+      transition: all 0.2s ease; font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.1); min-width: 100px;
     }
-    
     .weather-btn:active {
-      transform: scale(0.96);
-      background: linear-gradient(135deg, #e8e8e8 0%, #dddddd 100%);
+      transform: scale(0.96); background: linear-gradient(135deg, #e8e8e8 0%, #dddddd 100%);
     }
     
-    @media (max-width: 700px) {
-      .weather-panel { gap: 8px; padding: 10px 16px; }
-      .weather-btn { padding: 8px 16px; font-size: 1rem; min-width: 70px; }
-    }
-    
-    @media (max-width: 480px) {
-      .weather-btn { padding: 6px 12px; font-size: 0.9rem; min-width: 60px; }
-    }
+    @media (max-width: 700px) { .weather-panel { gap: 8px; padding: 10px 16px; } .weather-btn { padding: 8px 16px; font-size: 1rem; min-width: 70px; } }
+    @media (max-width: 480px) { .weather-btn { padding: 6px 12px; font-size: 0.9rem; min-width: 60px; } }
     
     #status {
-      position: fixed;
-      top: 15px;
-      left: 15px;
-      background: rgba(0,0,0,0.8);
-      color: #00ffcc;
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-family: monospace;
-      z-index: 200;
-      font-size: 12px;
-      pointer-events: none;
-      backdrop-filter: blur(4px);
-      font-weight: 500;
-      letter-spacing: 0.5px;
+      position: fixed; top: 15px; left: 15px; background: rgba(0,0,0,0.8); color: #00ffcc;
+      padding: 8px 14px; border-radius: 20px; font-family: monospace; z-index: 200; font-size: 12px;
+      pointer-events: none; backdrop-filter: blur(4px); font-weight: 500; letter-spacing: 0.5px;
       border-left: 3px solid #00ffcc;
     }
   </style>
@@ -106,258 +51,188 @@
 <body>
   <div id="status">🔄 Завантаження...</div>
   <button id="start-btn">🚀 Запустити AR</button>
-  
-  <!-- AR scene with WebXR -->
-  <a-scene xrweb="webxr" renderer="colorManagement: true; alpha: true; antialias: true">
+
+  <!-- AR scene -->
+  <a-scene
+    background="color: #000000"
+    renderer="colorManagement: true; antialias: true; alpha: true;"
+    xr-mode-ui="enabled: true; enterAREnabled: true; exitAREnabled: true;"
+    webxr="mode: immersive-ar; requiredFeatures: local-floor; optionalFeatures: hit-test, dom-overlay, hand-tracking;"
+  >
     <a-assets>
-      <img id="skySunny" src="./assets/sunny.png" crossorigin="anonymous">
+      <img id="skySunny"  src="./assets/sunny.png"  crossorigin="anonymous">
       <img id="skyCloudy" src="./assets/cloudy.png" crossorigin="anonymous">
-      <img id="skyRainy" src="./assets/rainy.png" crossorigin="anonymous">
+      <img id="skyRainy"  src="./assets/rainy.png"  crossorigin="anonymous">
       <img id="skyStormy" src="./assets/stormy.png" crossorigin="anonymous">
       <img id="skyDefault" src="./assets/space.png" crossorigin="anonymous">
       <img id="cloudTexture" src="./assets/cloud.png" crossorigin="anonymous">
     </a-assets>
-    
-    <!-- Camera (will be replaced by WebXR camera) -->
-    <a-camera position="0 1.6 0" user-height="1.6">
-      <a-cursor material="color: #00ffcc; shader: flat" opacity="0.6"></a-cursor>
-    </a-camera>
-    
-    <!-- Sky layer (transparent PNG over camera) -->
-    <a-entity xrlayerscene="name: sky; edgeSmoothness: 0.8">
-      <a-sky id="weatherSky" 
-             material="src: #skyDefault; transparent: true; opacity: 1; alphaTest: 0.3; side: back;">
-      </a-sky>
-      <a-entity light="type: ambient; intensity: 1.2;"></a-entity>
-      <a-entity light="type: directional; intensity: 0.8; position: 2 3 1;"></a-entity>
+
+    <a-camera position="0 1.6 0"></a-camera>
+
+    <!-- Погода – велика прозора сфера (не закриває камеру) -->
+    <a-entity id="weatherDome" scale="120 120 120" rotation="0 0 0">
+      <a-sphere id="weatherSky"
+               material="src: #skyDefault; transparent: true; opacity: 0.35; side: double; alphaTest: 0.01;"
+               position="0 0 0">
+      </a-sphere>
     </a-entity>
-    
-    <!-- Moving cloud -->
+
+    <!-- Рухома хмаринка -->
     <a-image id="movingCloud"
              src="#cloudTexture"
-             width="1.5" 
-             height="1.5"
+             width="1.5" height="1.5"
              material="transparent: true; alphaTest: 0.3"
              look-at="[camera]"
              visible="false">
     </a-image>
+
+    <!-- Світло -->
+    <a-entity light="type: ambient; intensity: 0.9"></a-entity>
+    <a-entity light="type: directional; intensity: 0.7; position: 3 5 2"></a-entity>
   </a-scene>
-  
+
   <div class="weather-panel">
     <button class="weather-btn" data-weather="sunny">☀️ Сонячно</button>
     <button class="weather-btn" data-weather="cloudy">☁️ Хмарно</button>
     <button class="weather-btn" data-weather="rainy">🌧️ Дощ</button>
     <button class="weather-btn" data-weather="stormy">⛈️ Гроза</button>
   </div>
-  
-  <audio id="soundSunny" src="./sounds/sunny.mp3" preload="auto"></audio>
+
+  <audio id="soundSunny"  src="./sounds/sunny.mp3"  preload="auto"></audio>
   <audio id="soundCloudy" src="./sounds/cloudy.mp3" preload="auto"></audio>
-  <audio id="soundRainy" src="./sounds/rainy.mp3" preload="auto"></audio>
+  <audio id="soundRainy"  src="./sounds/rainy.mp3"  preload="auto"></audio>
   <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto"></audio>
-  
+
   <script>
-    // ---------- STATUS ----------
     const statusDiv = document.getElementById('status');
     function setStatus(msg, isError = false) {
       statusDiv.innerHTML = msg;
       console.log(`[Status] ${msg}`);
-      if (isError) {
-        statusDiv.style.borderLeftColor = '#ff5555';
-        statusDiv.style.color = '#ffaaaa';
-      } else {
-        statusDiv.style.borderLeftColor = '#00ffcc';
-        statusDiv.style.color = '#00ffcc';
-      }
+      statusDiv.style.borderLeftColor = isError ? '#ff5555' : '#00ffcc';
+      statusDiv.style.color = isError ? '#ffaaaa' : '#00ffcc';
     }
-    
-    // ---------- AUDIO ----------
+
     function stopAllSounds() {
       ['soundSunny', 'soundCloudy', 'soundRainy', 'soundStormy'].forEach(id => {
         const audio = document.getElementById(id);
-        if (audio && !audio.paused) {
-          audio.pause();
-          audio.currentTime = 0;
-        }
+        if (audio && !audio.paused) { audio.pause(); audio.currentTime = 0; }
       });
     }
-    
-    // ---------- WEATHER ----------
-    const skyEntity = document.getElementById('weatherSky');
+
     const weatherMap = {
-      sunny: { textureId: '#skySunny', soundId: 'soundSunny', name: 'Сонячно' },
+      sunny:  { textureId: '#skySunny',  soundId: 'soundSunny',  name: 'Сонячно' },
       cloudy: { textureId: '#skyCloudy', soundId: 'soundCloudy', name: 'Хмарно' },
-      rainy: { textureId: '#skyRainy', soundId: 'soundRainy', name: 'Дощ' },
+      rainy:  { textureId: '#skyRainy',  soundId: 'soundRainy',  name: 'Дощ' },
       stormy: { textureId: '#skyStormy', soundId: 'soundStormy', name: 'Гроза' }
     };
-    
+
     function setWeather(weatherType) {
       const weather = weatherMap[weatherType];
       if (!weather) return;
-      
+
       stopAllSounds();
-      
-      if (skyEntity && skyEntity.components && skyEntity.components.material) {
-        skyEntity.setAttribute('material', 'src', weather.textureId);
+
+      const sky = document.getElementById('weatherSky');
+      if (sky) {
+        sky.setAttribute('material', 'src', weather.textureId);
         setStatus(`🌤️ Погода: ${weather.name}`);
       }
-      
+
       const audio = document.getElementById(weather.soundId);
       if (audio) {
         audio.currentTime = 0;
         audio.play().catch(e => console.warn('Audio play blocked:', e));
       }
     }
-    
+
     document.querySelectorAll('.weather-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const weather = btn.getAttribute('data-weather');
         setWeather(weather);
         btn.style.transform = 'scale(0.95)';
-        setTimeout(() => { btn.style.transform = ''; }, 150);
+        setTimeout(() => btn.style.transform = '', 150);
       });
     });
-    
-    // ---------- CLOUD ANIMATION ----------
-    const cloudImage = document.getElementById('movingCloud');
+
+    // Хмаринка
+    const cloud = document.getElementById('movingCloud');
     let cloudAngle = 0;
-    const cloudRadius = 2.8;
-    const cloudSpeed = 0.9;
-    let lastFrameTime = 0;
-    let animationActive = true;
-    
-    // Fallback cloud if cloud.png missing
-    function createFallbackCloudTexture() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 256;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'rgba(0,0,0,0)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.beginPath();
-      ctx.arc(128, 128, 60, 0, Math.PI * 2);
-      ctx.arc(180, 110, 50, 0, Math.PI * 2);
-      ctx.arc(80, 110, 45, 0, Math.PI * 2);
-      ctx.arc(150, 170, 40, 0, Math.PI * 2);
-      ctx.arc(100, 160, 35, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(240,240,255,0.9)';
-      ctx.beginPath();
-      ctx.arc(140, 120, 35, 0, Math.PI * 2);
-      ctx.fill();
-      
-      const img = new Image();
-      img.src = canvas.toDataURL();
-      img.id = 'cloudFallback';
-      document.querySelector('a-assets').appendChild(img);
-      cloudImage.setAttribute('src', '#cloudFallback');
-      cloudImage.setAttribute('visible', 'true');
-      setStatus('☁️ Хмарка (fallback) створена', false);
-    }
-    
-    const cloudTextureElem = document.getElementById('cloudTexture');
-    if (cloudTextureElem && cloudTextureElem.complete && cloudTextureElem.naturalWidth > 0) {
-      cloudImage.setAttribute('visible', 'true');
-    } else if (cloudTextureElem) {
-      cloudTextureElem.onload = () => {
-        cloudImage.setAttribute('visible', 'true');
-        setStatus('☁️ Хмарка завантажена', false);
-      };
-      cloudTextureElem.onerror = () => createFallbackCloudTexture();
-    } else {
-      createFallbackCloudTexture();
-    }
-    
-    function animateCloud(currentTime) {
-      if (!animationActive) return;
-      
-      const camera = document.querySelector('a-camera');
-      if (!camera || !camera.object3D) {
-        requestAnimationFrame(animateCloud);
-        return;
-      }
-      
-      const cameraWorldPos = new THREE.Vector3();
-      camera.object3D.getWorldPosition(cameraWorldPos);
-      
-      if (lastFrameTime !== 0) {
-        const delta = Math.min(0.033, (currentTime - lastFrameTime) / 1000);
-        cloudAngle += cloudSpeed * delta;
-        if (cloudAngle > Math.PI * 2) cloudAngle -= Math.PI * 2;
-      }
-      lastFrameTime = currentTime;
-      
-      const x = cameraWorldPos.x + cloudRadius * Math.cos(cloudAngle);
-      const z = cameraWorldPos.z + cloudRadius * Math.sin(cloudAngle);
-      const y = cameraWorldPos.y + 1.9;
-      
-      cloudImage.setAttribute('position', { x, y, z });
+    const cloudRadius = 3.2;
+    const cloudSpeed = 0.8;
+    let lastTime = 0;
+
+    function animateCloud(time) {
+      if (!cloud) return requestAnimationFrame(animateCloud);
+
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+      cloudAngle += cloudSpeed * dt;
+
+      const cam = document.querySelector('a-camera').object3D;
+      const pos = cam.getWorldPosition(new THREE.Vector3());
+
+      const x = pos.x + cloudRadius * Math.cos(cloudAngle);
+      const z = pos.z + cloudRadius * Math.sin(cloudAngle);
+      const y = pos.y + 2.1;
+
+      cloud.setAttribute('position', {x, y, z});
       requestAnimationFrame(animateCloud);
     }
-    
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        animationActive = true;
-        requestAnimationFrame(animateCloud);
-      }, 500);
-    });
-    
-    // ---------- WEBXR ACTIVATION ----------
-    const startBtn = document.getElementById('start-btn');
-    const sceneEl = document.querySelector('a-scene');
-    
-    startBtn.addEventListener('click', async () => {
-      // Check if WebXR is supported
-      if (!navigator.xr) {
-        setStatus('❌ Ваш браузер не підтримує WebXR. Спробуйте Chrome або Safari на iOS.', true);
-        return;
-      }
-      
-      // Check if immersive-ar is supported
-      const isSupported = await navigator.xr.isSessionSupported('immersive-ar');
-      if (!isSupported) {
-        setStatus('❌ Пристрій не підтримує AR. Використовуйте сумісний телефон.', true);
-        return;
-      }
-      
-      setStatus('🎥 Запускаємо AR...');
-      
-      try {
-        // Enter AR mode using A-Frame's API
-        await sceneEl.enterAR();
-        setStatus('✅ AR активний! Камера показує фон.');
-        startBtn.style.display = 'none';
-      } catch (err) {
-        console.error('Failed to enter AR:', err);
-        setStatus(`❌ Помилка AR: ${err.message || 'невідома'}`, true);
-      }
-    });
-    
-    // Preload textures
-    function preloadTextures() {
-      ['#skySunny', '#skyCloudy', '#skyRainy', '#skyStormy'].forEach(id => {
-        const img = document.querySelector(id);
-        if (img && !img.complete) {
-          img.onload = () => console.log(`Texture ${id} loaded`);
-        }
-      });
+
+    // Fallback для хмари (якщо не завантажилась)
+    const tex = document.getElementById('cloudTexture');
+    if (tex.complete && tex.naturalWidth > 0) {
+      cloud.setAttribute('visible', 'true');
+    } else if (tex) {
+      tex.onload = () => { cloud.setAttribute('visible', 'true'); setStatus('☁️ Хмаринка OK'); };
+      tex.onerror = () => {
+        // тут можна вставити твій createFallbackCloudTexture()
+        setStatus('☁️ Використовуємо fallback хмару');
+        cloud.setAttribute('visible', 'true');
+      };
     }
-    preloadTextures();
-    
-    // Unlock audio on first touch/click
+
+    // Запуск AR
+    const startBtn = document.getElementById('start-btn');
+    const scene = document.querySelector('a-scene');
+
+    startBtn.addEventListener('click', async () => {
+      if (!navigator.xr) {
+        setStatus('❌ Браузер не підтримує WebXR', true);
+        return;
+      }
+
+      const supported = await navigator.xr.isSessionSupported('immersive-ar');
+      if (!supported) {
+        setStatus('❌ Пристрій не підтримує immersive-ar', true);
+        return;
+      }
+
+      setStatus('🎥 Запускаємо AR...');
+
+      try {
+        await scene.enterAR();
+        startBtn.style.display = 'none';
+        setStatus('✅ AR активний! Види реальний світ?');
+        requestAnimationFrame(animateCloud);
+      } catch (err) {
+        console.error(err);
+        setStatus(`❌ Помилка: ${err.message || 'невідома'}`, true);
+      }
+    });
+
+    // Розблокування аудіо
     function unlockAudio() {
-      ['soundSunny', 'soundCloudy', 'soundRainy', 'soundStormy'].forEach(id => {
-        const audio = document.getElementById(id);
-        if (audio) audio.load();
-      });
+      document.querySelectorAll('audio').forEach(a => a.load());
       document.removeEventListener('touchstart', unlockAudio);
       document.removeEventListener('click', unlockAudio);
     }
     document.addEventListener('touchstart', unlockAudio);
     document.addEventListener('click', unlockAudio);
-    
+
     window.addEventListener('load', () => {
-      setStatus('✅ Ресурси завантажено. Натисніть "Запустити AR"');
+      setStatus('✅ Готово. Натисни "Запустити AR"');
     });
   </script>
 </body>
