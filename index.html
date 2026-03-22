@@ -2,122 +2,47 @@
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#1a1a2e">
-  
-  <!-- 8th Wall: Sky Effects package -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <meta name="8thwall:package" content="@8thwall/sky-effects">
+  <title>🌤️ Дитяча погода в небі</title>
 
-  <title>🌤️ Дитяча погода в небі — 8th Wall FREE</title>
-
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  
-  <!-- 8th Wall XR Engine (FREE open source) -->
-  <script src="https://cdn.8thwall.com/8thwall/xr-engine-2026.js"></script>
-  <script src="https://cdn.8thwall.com/8thwall/xr-sky-effects-2026.js"></script>
-  
-  <!-- A-Frame Extras -->
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
+  
+  <!-- Локальні 8th Wall файли -->
+  <script src="./xr-standalone/xr.js"></script>
+  <script src="./xr-standalone/sky-recenter.js"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: white;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    #status {
-      position: fixed; top: 20px; left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.85);
-      padding: 12px 24px; border-radius: 50px;
-      font-size: 14px; z-index: 1000;
-      text-align: center; max-width: 90vw;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-    #status.error {
-      background: rgba(220,50,50,0.9);
-      animation: shake 0.5s ease;
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(-50%) rotate(0deg); }
-      25% { transform: translateX(-52%) rotate(-1deg); }
-      75% { transform: translateX(-48%) rotate(1deg); }
-    }
-    #start-btn {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white; border: none; padding: 18px 40px;
-      font-size: 18px; border-radius: 50px;
-      cursor: pointer; margin: 20px 0;
-      box-shadow: 0 8px 25px rgba(102,126,234,0.4);
-      font-weight: 600; display: flex; align-items: center; gap: 10px;
-      transition: all 0.3s ease;
-    }
-    #start-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(102,126,234,0.6); }
-    #start-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-    
-    .weather-panel {
-      position: fixed; bottom: 20px; left: 50%;
-      transform: translateX(-50%);
-      display: flex; gap: 8px; flex-wrap: wrap;
-      justify-content: center; z-index: 999;
-      padding: 10px; background: rgba(0,0,0,0.7);
-      border-radius: 20px; backdrop-filter: blur(10px);
-    }
-    .weather-btn {
-      background: rgba(255,255,255,0.2);
-      border: 2px solid rgba(255,255,255,0.3);
-      color: white; padding: 10px 16px;
-      border-radius: 15px; cursor: pointer;
-      font-size: 14px; min-width: 70px;
-      transition: all 0.2s;
-    }
-    .weather-btn:hover, .weather-btn.active {
-      background: rgba(255,255,255,0.4);
-      border-color: white; transform: scale(1.05);
-    }
-    
-    a-scene {
-      position: fixed !important;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      z-index: 1;
-    }
-    
-    .tutorial {
-      position: fixed; bottom: 100px; left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.9);
-      padding: 15px 25px; border-radius: 16px;
-      max-width: 90vw; text-align: center;
-      z-index: 998; animation: fadeInUp 0.4s ease;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
+    body { font-family: system-ui, sans-serif; background: #1a1a2e; color: white; 
+           min-height: 100vh; display: flex; flex-direction: column; 
+           align-items: center; justify-content: center; padding: 20px; }
+    #status { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
+              background: rgba(0,0,0,0.85); padding: 12px 24px; border-radius: 50px; 
+              font-size: 14px; z-index: 1000; text-align: center; max-width: 90vw; }
+    #status.error { background: rgba(220,50,50,0.9); }
+    #start-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; 
+                 border: none; padding: 18px 40px; font-size: 18px; border-radius: 50px; 
+                 cursor: pointer; margin: 20px 0; font-weight: 600; }
+    #start-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .weather-panel { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+                     display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; 
+                     z-index: 999; padding: 10px; background: rgba(0,0,0,0.7); border-radius: 20px; }
+    .weather-btn { background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); 
+                   color: white; padding: 10px 16px; border-radius: 15px; cursor: pointer; 
+                   font-size: 14px; min-width: 70px; }
+    .weather-btn.active { background: rgba(255,255,255,0.4); border-color: white; }
+    a-scene { position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    .tutorial { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); 
+                background: rgba(0,0,0,0.9); padding: 15px 25px; border-radius: 16px; 
+                max-width: 90vw; text-align: center; z-index: 998; }
     .tutorial.hidden { display: none; }
-    
-    .badge-free {
-      position: fixed; top: 20px; right: 20px;
-      background: linear-gradient(135deg, #10dc60, #00e676);
-      color: #1a1a2e; padding: 8px 16px;
-      border-radius: 20px; font-weight: bold;
-      font-size: 12px; z-index: 1000;
-      box-shadow: 0 4px 15px rgba(16,220,96,0.4);
-    }
   </style>
 </head>
 <body>
 
-  <div class="badge-free">🎉 FREE & OPEN SOURCE</div>
-  <div id="status">🔄 Завантаження 8th Wall...</div>
+  <div id="status">🔄 Завантаження...</div>
   <button id="start-btn">🚀 Запустити Sky AR</button>
 
   <div class="weather-panel" id="weatherPanel" style="display:none;">
@@ -128,15 +53,13 @@
     <button class="weather-btn" data-weather="stormy">⛈️ Гроза</button>
   </div>
 
-  <div class="tutorial" id="tutorial">
-    👆 Наведіть камеру на <b>небо</b> для активації
-  </div>
+  <div class="tutorial" id="tutorial">👆 Наведіть камеру на небо</div>
 
-  <!-- A-Frame Scene з 8th Wall Sky Effects -->
+  <!-- A-Frame Scene -->
   <a-scene
     xrlayers
     background="transparent"
-    renderer="colorManagement: true; antialias: true; alpha: true; physicallyCorrectLights: true;"
+    renderer="colorManagement: true; antialias: true; alpha: true;"
     xr-mode-ui="enabled: false"
     webxr="mode: immersive-ar; referenceSpaceType: local;"
     sky-recenter
@@ -144,106 +67,66 @@
     vr-mode-ui="enabled: false"
     loading-screen="enabled: false"
   >
-    
     <a-assets>
-      <!-- Sky textures -->
       <img id="skySunny" src="./assets/sunny.png" crossorigin="anonymous">
       <img id="skyCloudy" src="./assets/cloudy.png" crossorigin="anonymous">
       <img id="skyRainy" src="./assets/rainy.png" crossorigin="anonymous">
       <img id="skyStormy" src="./assets/stormy.png" crossorigin="anonymous">
       <img id="skyDefault" src="./assets/space.png" crossorigin="anonymous">
       <img id="cloudTexture" src="./assets/cloud.png" crossorigin="anonymous">
-      
-      <!-- Sounds -->
-      <audio id="soundSunny" src="./sounds/sunny.mp3" preload="auto" crossorigin="anonymous"></audio>
-      <audio id="soundCloudy" src="./sounds/cloudy.mp3" preload="auto" crossorigin="anonymous"></audio>
-      <audio id="soundRainy" src="./sounds/rainy.mp3" preload="auto" crossorigin="anonymous"></audio>
-      <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto" crossorigin="anonymous"></audio>
+      <audio id="soundSunny" src="./sounds/sunny.mp3" preload="auto"></audio>
+      <audio id="soundCloudy" src="./sounds/cloudy.mp3" preload="auto"></audio>
+      <audio id="soundRainy" src="./sounds/rainy.mp3" preload="auto"></audio>
+      <audio id="soundStormy" src="./sounds/stormy.mp3" preload="auto"></audio>
     </a-assets>
 
-    <a-camera position="0 1.6 0" look-controls-enabled="false">
-      <a-entity cursor="rayOrigin: mouse; fuse: false;" raycaster="objects: .clickable; far: 100;"></a-entity>
-    </a-camera>
+    <a-camera position="0 1.6 0"></a-camera>
 
     <!-- Sky Scene Container -->
     <a-entity 
-      xrlayerscene="name:sky; edgeSmoothness: 0.15; invertLayerMask: false;" 
+      xrlayerscene="name:sky; edgeSmoothness: 0.15;" 
       id="skyScene"
     >
       <a-entity id="pivot" rotation="0 0 0">
-        
-        <!-- Weather Sky Sphere -->
         <a-sphere id="weatherSky"
                   radius="500"
-                  material="src: #skyDefault; transparent: true; opacity: 0.95; side: back; fog: false;">
+                  material="src: #skyDefault; transparent: true; opacity: 0.95; side: back;">
         </a-sphere>
 
-        <!-- Animated Clouds -->
+        <!-- Clouds -->
         <a-entity id="cloudsGroup">
-          <a-image class="clickable"
-                   src="#cloudTexture"
-                   width="12" height="12"
+          <a-image src="#cloudTexture" width="12" height="12"
                    material="transparent: true; alphaTest: 0.2"
                    position="-15 25 -40"
-                   animation__move="property: position; to: 15 28 -35; dur: 25000; easing: linear; loop: true"
-                   animation__scale="property: scale; to: 1.1 1.1 1.1; dur: 3000; easing: easeInOutSine; loop: true; dir: alternate">
-          </a-image>
-          
-          <a-image class="clickable"
-                   src="#cloudTexture"
-                   width="10" height="10"
-                   material="transparent: true; alphaTest: 0.2"
-                   position="20 35 -50"
-                   animation__move="property: position; to: -20 38 -45; dur: 30000; easing: linear; loop: true"
-                   animation__scale="property: scale; to: 0.9 0.9 0.9; dur: 4000; easing: easeInOutSine; loop: true; dir: alternate">
+                   animation__move="property: position; to: 15 28 -35; dur: 25000; easing: linear; loop: true">
           </a-image>
         </a-entity>
 
-        <!-- Sun Indicator -->
-        <a-sphere id="sunIndicator"
-                  radius="8"
-                  material="color: #FFD700; emissive: #FFA500; emissiveIntensity: 0.5; transparent: true; opacity: 0.9"
-                  position="30 40 -60"
-                  visible="false"
-                  animation__pulse="property: scale; to: 1.2 1.2 1.2; dur: 2000; easing: easeInOutSine; loop: true; dir: alternate">
+        <!-- Sun -->
+        <a-sphere id="sunIndicator" radius="8"
+                  material="color: #FFD700; emissive: #FFA500; emissiveIntensity: 0.5;"
+                  position="30 40 -60" visible="false">
           <a-light type="point" intensity="0.8" distance="100" color="#FFF4E5"></a-light>
         </a-sphere>
-
       </a-entity>
     </a-entity>
 
     <!-- Coaching Overlay -->
-    <a-entity id="coachingOverlay"
-              sky-coaching-overlay
-              visible="false"
-              position="0 0 -3">
-      <a-text value="👆 Погляньте вгору на небо"
-              align="center" color="white"
-              background-color="rgba(0,0,0,0.7)"
-              padding="1.5 2" baseline="center"
-              position="0 0 0" scale="0.8 0.8 0.8">
+    <a-entity id="coachingOverlay" sky-coaching-overlay visible="false">
+      <a-text value="👆 Погляньте вгору на небо" align="center" color="white"
+              background-color="rgba(0,0,0,0.7)" padding="1.5 2" position="0 0 -3">
       </a-text>
     </a-entity>
 
     <!-- Lights -->
     <a-entity light="type: ambient; intensity: 0.7; color: #BBDEFB"></a-entity>
-    <a-entity light="type: directional; intensity: 0.6; color: #FFF9C4; position: 5 10 3; castShadow: true"></a-entity>
-
+    <a-entity light="type: directional; intensity: 0.6; position: 5 10 3"></a-entity>
   </a-scene>
 
   <script>
-    // ==================== CONFIG ====================
-    // 8th Wall тепер БЕЗКОШТОВНИЙ - ніяких ключів не потрібно!
-    const XR_CONFIG = {
-      devMode: false, // Тепер не потрібно
-      skyDetection: { enabled: true, minConfidence: 0.6 }
-    };
-
     // ==================== STATE ====================
-    let currentWeather = 'default';
     let arActive = false;
     let sounds = {};
-    
     const weatherMap = {
       default: { sky: '#skyDefault', sound: null },
       sunny:   { sky: '#skySunny',   sound: 'soundSunny' },
@@ -252,184 +135,119 @@
       stormy:  { sky: '#skyStormy',  sound: 'soundStormy' }
     };
 
-    // ==================== UTILS ====================
-    function setStatus(message, isError = false) {
+    function setStatus(msg, err = false) {
       const el = document.getElementById('status');
-      el.textContent = message;
-      el.classList.toggle('error', isError);
+      el.textContent = msg;
+      el.classList.toggle('error', err);
     }
 
     function stopAllSounds() {
-      Object.values(sounds).forEach(sound => {
-        if (sound && !sound.paused) { sound.pause(); sound.currentTime = 0; }
-      });
+      Object.values(sounds).forEach(s => { if (s && !s.paused) { s.pause(); s.currentTime = 0; } });
     }
 
-    function playSound(soundId) {
+    function playSound(id) {
       stopAllSounds();
-      if (soundId && sounds[soundId]) {
-        sounds[soundId].play().catch(e => console.log('Audio play error:', e));
-      }
+      if (id && sounds[id]) sounds[id].play().catch(() => {});
     }
 
-    function setWeather(weatherType) {
-      const config = weatherMap[weatherType] || weatherMap.default;
-      const skyEl = document.getElementById('weatherSky');
-      
-      skyEl.setAttribute('material', 'src', config.sky);
-      skyEl.setAttribute('animation__fade', {
-        property: 'material.opacity',
-        from: 0.95, to: 0.7, dur: 300, easing: 'easeInOutQuad'
-      });
-      setTimeout(() => {
-        skyEl.setAttribute('animation__fade', {
-          property: 'material.opacity',
-          from: 0.7, to: 0.95, dur: 500, easing: 'easeInOutQuad'
-        });
-      }, 300);
-
-      playSound(config.sound);
-      
-      document.querySelectorAll('.weather-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.weather === weatherType);
-      });
-
-      const sun = document.getElementById('sunIndicator');
-      sun.setAttribute('visible', weatherType === 'sunny');
-
-      currentWeather = weatherType;
-      console.log('🌤️ Weather changed:', weatherType);
+    function setWeather(type) {
+      const cfg = weatherMap[type] || weatherMap.default;
+      const sky = document.getElementById('weatherSky');
+      sky.setAttribute('material', 'src', cfg.sky);
+      playSound(cfg.sound);
+      document.querySelectorAll('.weather-btn').forEach(btn => 
+        btn.classList.toggle('active', btn.dataset.weather === type)
+      );
+      document.getElementById('sunIndicator').setAttribute('visible', type === 'sunny');
     }
 
     // ==================== 8TH WALL INIT ====================
-    async function init8thWall() {
+    async function initXR() {
       return new Promise((resolve, reject) => {
         if (typeof XR === 'undefined') {
-          reject(new Error('8th Wall XR not loaded'));
+          reject(new Error('8th Wall not loaded'));
           return;
         }
-
-        // 8th Wall ініціалізація (тепер без ключа!)
         XR.init({
           onLoaded: () => {
-            console.log('✅ 8th Wall loaded (FREE!)');
-            ['soundSunny', 'soundCloudy', 'soundRainy', 'soundStormy'].forEach(id => {
+            console.log('✅ 8th Wall loaded');
+            ['soundSunny','soundCloudy','soundRainy','soundStormy'].forEach(id => {
               const el = document.getElementById(id);
               if (el) sounds[id] = el;
             });
             resolve();
           },
-          onError: (err) => {
-            console.error('❌ 8th Wall error:', err);
-            reject(err);
-          }
+          onError: reject
         });
       });
     }
 
-    // ==================== AR START ====================
     async function startAR() {
+      setStatus('🎥 Запуск камери...');
       try {
-        setStatus('🎥 Запуск камери...');
-        
-        await XR.start({
-          cameraPipeline: {
-            sky: { enabled: true }
-          }
-        });
-        
+        await XR.start({ cameraPipeline: { sky: { enabled: true } } });
         arActive = true;
         document.getElementById('start-btn').style.display = 'none';
         document.getElementById('weatherPanel').style.display = 'flex';
         document.getElementById('tutorial').classList.add('hidden');
         
+        // Показати coaching overlay
         const coaching = document.getElementById('coachingOverlay');
         if (coaching) {
           coaching.setAttribute('visible', 'true');
-          setTimeout(() => {
-            if (coaching.getAttribute('visible')) {
-              coaching.setAttribute('visible', 'false');
-            }
-          }, 5000);
+          setTimeout(() => coaching.setAttribute('visible', 'false'), 5000);
         }
         
-        setStatus('✅ Sky AR активний! Наведіть камеру на небо');
+        setStatus('✅ Sky AR активний!');
         
+        // Слухач детекції неба
         document.querySelector('a-scene').addEventListener('xrlayers-sky-detected', () => {
-          console.log('🌤️ Sky detected!');
           if (coaching) coaching.setAttribute('visible', 'false');
         });
-
       } catch (err) {
-        console.error('AR start error:', err);
-        setStatus(`❌ Помилка: ${err.message || 'Не вдалося запустити AR'}`, true);
+        console.error(err);
+        setStatus('❌ Помилка: ' + err.message, true);
       }
     }
 
-    // ==================== EVENT LISTENERS ====================
+    // ==================== EVENTS ====================
     document.getElementById('start-btn').addEventListener('click', async () => {
       const btn = document.getElementById('start-btn');
       btn.disabled = true;
-      
       try {
-        if (typeof XR !== 'undefined' && !window.xrInitialized) {
-          await init8thWall();
+        if (!window.xrInitialized) {
+          await initXR();
           window.xrInitialized = true;
         }
         await startAR();
-      } catch (e) {
-        console.error(e);
       } finally {
         btn.disabled = false;
       }
     });
 
     document.querySelectorAll('.weather-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        if (!arActive) {
-          setStatus('⚠️ Спочатку запустіть AR', true);
-          return;
-        }
+      btn.addEventListener('click', e => {
+        if (!arActive) { setStatus('⚠️ Спочатку запустіть AR', true); return; }
         setWeather(e.currentTarget.dataset.weather);
       });
     });
 
-    // Audio unlock for Android/iOS
+    // Audio unlock
     function unlockAudio() {
-      Object.values(sounds).forEach(sound => {
-        if (sound) {
-          sound.load();
-          sound.play().then(() => { sound.pause(); sound.currentTime = 0; }).catch(() => {});
-        }
+      Object.values(sounds).forEach(s => {
+        if (s) { s.load(); s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(()=>{}); }
       });
       document.removeEventListener('touchstart', unlockAudio);
-      document.removeEventListener('click', unlockAudio);
     }
     document.addEventListener('touchstart', unlockAudio, { passive: true });
-    document.addEventListener('click', unlockAudio, { passive: true });
 
-    // Visibility change
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && arActive) stopAllSounds();
-    });
-
-    // ==================== INIT ====================
-    window.addEventListener('DOMContentLoaded', async () => {
-      const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-      const hasWebXR = !!navigator.xr;
-      
-      console.log('📱 Device:', { isMobile, hasWebXR });
-      
-      if (!isMobile) {
-        setStatus('💻 Рекомендовано відкрити на смартфоні', true);
-      }
-      
+    // Init
+    window.addEventListener('load', async () => {
       try {
-        await init8thWall();
+        await initXR();
         setStatus('✅ Готово. Натисніть "Запустити Sky AR"');
       } catch (e) {
-        console.warn('Init warning:', e);
-        setStatus('⚠️ Перевірте підключення до інтернету');
+        setStatus('⚠️ Перевірте підключення');
       }
     });
   </script>
