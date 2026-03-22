@@ -9,9 +9,9 @@
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <!-- 8th Wall Standalone Engine (self-hosted) -->
   <script src="./xr-standalone/xr.js"></script>
-  <!-- A-Frame component for 8th Wall integration -->
+  <!-- A-Frame component for 8th Wall integration (важно для xrlayers) -->
   <script src="https://8thwall.org/aframe/8frame-1.5.0.min.js"></script>
-  <!-- Sky recenter component (optional) -->
+  <!-- Sky recenter component (опціонально) -->
   <script src="./xr-standalone/sky-recenter.js"></script>
 
   <style>
@@ -82,17 +82,16 @@
 
     <a-camera position="0 1.6 0" camera="far: 1000"></a-camera>
 
-    <!-- Sky layer (xrlayerscene) – where the weather sphere lives -->
+    <!-- Шар неба (Sky Effects) -->
     <a-entity xrlayerscene="name: sky; edgeSmoothness: 0.15;">
-      <!-- Sky sphere with correct material settings -->
       <a-sphere id="weatherSky"
                 radius="500"
-                material="src: #skyDefault; transparent: true; alphaTest: 0.1; side: back;"
+                material="src: #skyDefault; transparent: true; alphaTest: 0.05; side: back; depthWrite: false"
                 position="0 0 0">
       </a-sphere>
     </a-entity>
 
-    <!-- Moving cloud (outside xrlayerscene, but inside the scene) -->
+    <!-- Рухома хмара (поза шаром неба, але всередині сцени) -->
     <a-image id="movingCloud"
              src="#cloudTexture"
              width="2" height="2"
@@ -120,6 +119,7 @@
       const el = document.getElementById('status');
       el.textContent = msg;
       el.style.background = err ? 'rgba(220,50,50,0.9)' : 'rgba(0,0,0,0.8)';
+      console.log(`[Status] ${msg}`);
     }
 
     function stopAllSounds() {
@@ -193,33 +193,41 @@
       cloud.setAttribute('visible', 'true');
     }
 
-    // ========== ЗАПУСК AR (через A-Frame та 8th Wall) ==========
-    // Використовуємо стандартний механізм A-Frame для входу в AR
+    // ========== ЗАПУСК AR (через A-Frame) ==========
     const startBtn = document.getElementById('start-btn');
     const sceneEl = document.querySelector('a-scene');
 
     startBtn.addEventListener('click', async () => {
+      // Перевірка підтримки WebXR
       if (!navigator.xr) {
-        setStatus('❌ Ваш браузер не підтримує WebXR', true);
+        setStatus('❌ Ваш браузер не підтримує WebXR. Спробуйте Chrome або Safari на iOS.', true);
         return;
       }
-      const supported = await navigator.xr.isSessionSupported('immersive-ar');
+
+      let supported = false;
+      try {
+        supported = await navigator.xr.isSessionSupported('immersive-ar');
+      } catch (e) {
+        console.warn('isSessionSupported error:', e);
+      }
+
       if (!supported) {
-        setStatus('❌ Пристрій не підтримує AR', true);
+        setStatus('❌ Ваш пристрій не підтримує доповнену реальність (AR).', true);
         return;
       }
 
       setStatus('🎥 Запускаємо AR...');
       try {
-        // Використовуємо A-Frame для входу в AR
+        // Входимо в AR через A-Frame
         await sceneEl.enterAR();
         arActive = true;
         startBtn.style.display = 'none';
         document.getElementById('weatherPanel').style.display = 'flex';
         setStatus('✅ AR активний! Небо накладено.');
       } catch (err) {
-        console.error(err);
-        setStatus('❌ Помилка: ' + err.message, true);
+        console.error('Помилка входу в AR:', err);
+        // Показуємо детальну інформацію про помилку
+        setStatus(`❌ Помилка: ${err.name || 'невідомо'} — ${err.message || 'деталі в консолі'}`, true);
       }
     });
 
