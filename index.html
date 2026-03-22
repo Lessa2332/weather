@@ -3,13 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="8thwall:package" content="@8thwall/sky-effects">
   <title>🌤️ Дитяча погода в небі</title>
 
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
   
-  <!-- Локальні 8th Wall файли -->
+  <!-- Локальні файли 8th Wall (ті, що вже працюють) -->
   <script src="./xr-standalone/xr.js"></script>
   <script src="./xr-standalone/sky-recenter.js"></script>
 
@@ -53,11 +51,10 @@
     <button class="weather-btn" data-weather="stormy">⛈️ Гроза</button>
   </div>
 
-  <div class="tutorial" id="tutorial">👆 Наведіть камеру на небо</div>
+  <div class="tutorial" id="tutorial">👆 Наведіть камеру навколо себе</div>
 
-  <!-- A-Frame Scene -->
+  <!-- A-Frame Scene – без xrlayers, просто сфера -->
   <a-scene
-    xrlayers
     background="transparent"
     renderer="colorManagement: true; antialias: true; alpha: true;"
     xr-mode-ui="enabled: false"
@@ -82,43 +79,23 @@
 
     <a-camera position="0 1.6 0"></a-camera>
 
-    <!-- Sky Scene Container -->
-    <a-entity 
-      xrlayerscene="name:sky; edgeSmoothness: 0.15;" 
-      id="skyScene"
-    >
-      <a-entity id="pivot" rotation="0 0 0">
-        <a-sphere id="weatherSky"
-                  radius="500"
-                  material="src: #skyDefault; transparent: true; opacity: 0.95; side: back;">
-        </a-sphere>
+    <!-- Проста сфера неба (без xrlayerscene) -->
+    <a-sphere id="weatherSky"
+              radius="500"
+              material="src: #skyDefault; transparent: true; alphaTest: 0.1; side: back;"
+              position="0 0 0">
+    </a-sphere>
 
-        <!-- Clouds -->
-        <a-entity id="cloudsGroup">
-          <a-image src="#cloudTexture" width="12" height="12"
-                   material="transparent: true; alphaTest: 0.2"
-                   position="-15 25 -40"
-                   animation__move="property: position; to: 15 28 -35; dur: 25000; easing: linear; loop: true">
-          </a-image>
-        </a-entity>
+    <!-- Рухома хмара (білборд) -->
+    <a-image id="movingCloud"
+             src="#cloudTexture"
+             width="2" height="2"
+             material="transparent: true; alphaTest: 0.3"
+             look-at="[camera]"
+             visible="false">
+    </a-image>
 
-        <!-- Sun -->
-        <a-sphere id="sunIndicator" radius="8"
-                  material="color: #FFD700; emissive: #FFA500; emissiveIntensity: 0.5;"
-                  position="30 40 -60" visible="false">
-          <a-light type="point" intensity="0.8" distance="100" color="#FFF4E5"></a-light>
-        </a-sphere>
-      </a-entity>
-    </a-entity>
-
-    <!-- Coaching Overlay -->
-    <a-entity id="coachingOverlay" sky-coaching-overlay visible="false">
-      <a-text value="👆 Погляньте вгору на небо" align="center" color="white"
-              background-color="rgba(0,0,0,0.7)" padding="1.5 2" position="0 0 -3">
-      </a-text>
-    </a-entity>
-
-    <!-- Lights -->
+    <!-- Світло -->
     <a-entity light="type: ambient; intensity: 0.7; color: #BBDEFB"></a-entity>
     <a-entity light="type: directional; intensity: 0.6; position: 5 10 3"></a-entity>
   </a-scene>
@@ -158,7 +135,64 @@
       document.querySelectorAll('.weather-btn').forEach(btn => 
         btn.classList.toggle('active', btn.dataset.weather === type)
       );
-      document.getElementById('sunIndicator').setAttribute('visible', type === 'sunny');
+    }
+
+    // ==================== АНІМАЦІЯ ХМАРИ ====================
+    const cloud = document.getElementById('movingCloud');
+    let cloudAngle = 0;
+    const cloudRadius = 3.2;
+    const cloudSpeed = 0.8;
+    let lastTime = 0;
+
+    function animateCloud(time) {
+      requestAnimationFrame(animateCloud);
+      if (!cloud || cloud.getAttribute('visible') !== 'true') return;
+
+      const dt = Math.min(0.033, (time - lastTime) / 1000);
+      lastTime = time;
+      cloudAngle += cloudSpeed * dt;
+
+      const camera = document.querySelector('a-camera')?.object3D;
+      if (!camera) return;
+
+      const pos = camera.getWorldPosition(new THREE.Vector3());
+      const x = pos.x + cloudRadius * Math.cos(cloudAngle);
+      const z = pos.z + cloudRadius * Math.sin(cloudAngle);
+      const y = pos.y + 2.1;
+
+      cloud.setAttribute('position', { x, y, z });
+    }
+    requestAnimationFrame(animateCloud);
+
+    // Завантаження текстури хмари
+    const cloudTex = document.getElementById('cloudTexture');
+    if (cloudTex.complete && cloudTex.naturalWidth !== 0) {
+      cloud.setAttribute('visible', 'true');
+    } else if (cloudTex) {
+      cloudTex.onload = () => cloud.setAttribute('visible', 'true');
+      cloudTex.onerror = () => {
+        // Fallback – створимо просту canvas-хмару
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.beginPath();
+        ctx.arc(128, 128, 60, 0, Math.PI * 2);
+        ctx.arc(180, 110, 50, 0, Math.PI * 2);
+        ctx.arc(80, 110, 45, 0, Math.PI * 2);
+        ctx.fill();
+        const fallbackImg = new Image();
+        fallbackImg.src = canvas.toDataURL();
+        fallbackImg.id = 'cloudFallback';
+        document.querySelector('a-assets').appendChild(fallbackImg);
+        cloud.setAttribute('src', '#cloudFallback');
+        cloud.setAttribute('visible', 'true');
+      };
+    } else {
+      cloud.setAttribute('visible', 'true');
     }
 
     // ==================== 8TH WALL INIT ====================
@@ -190,20 +224,7 @@
         document.getElementById('start-btn').style.display = 'none';
         document.getElementById('weatherPanel').style.display = 'flex';
         document.getElementById('tutorial').classList.add('hidden');
-        
-        // Показати coaching overlay
-        const coaching = document.getElementById('coachingOverlay');
-        if (coaching) {
-          coaching.setAttribute('visible', 'true');
-          setTimeout(() => coaching.setAttribute('visible', 'false'), 5000);
-        }
-        
-        setStatus('✅ Sky AR активний!');
-        
-        // Слухач детекції неба
-        document.querySelector('a-scene').addEventListener('xrlayers-sky-detected', () => {
-          if (coaching) coaching.setAttribute('visible', 'false');
-        });
+        setStatus('✅ Sky AR активний! Небо накладено.');
       } catch (err) {
         console.error(err);
         setStatus('❌ Помилка: ' + err.message, true);
@@ -232,7 +253,7 @@
       });
     });
 
-    // Audio unlock
+    // Розблокування аудіо
     function unlockAudio() {
       Object.values(sounds).forEach(s => {
         if (s) { s.load(); s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(()=>{}); }
@@ -241,13 +262,13 @@
     }
     document.addEventListener('touchstart', unlockAudio, { passive: true });
 
-    // Init
+    // Стартове повідомлення
     window.addEventListener('load', async () => {
       try {
         await initXR();
         setStatus('✅ Готово. Натисніть "Запустити Sky AR"');
       } catch (e) {
-        setStatus('⚠️ Перевірте підключення');
+        setStatus('⚠️ Перевірте підключення 8th Wall', true);
       }
     });
   </script>
