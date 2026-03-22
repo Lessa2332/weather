@@ -4,18 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Дитяча погода в небі</title>
-
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <!-- 8th Wall Self‑hosted Engine -->
   <script src="./xr-standalone/xr.js"></script>
-  <!-- A-Frame компонент для 8th Wall (забезпечує xrlayers) -->
   <script src="https://8thwall.org/aframe/8frame-1.5.0.min.js"></script>
-  <!-- Додатковий компонент центрування -->
-  <script src="./xr-standalone/sky-recenter.js"></script>
-
   <style>
-    body { margin:0; overflow:hidden; font-family:'Segoe UI',sans-serif; }
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
     #status {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
       background: rgba(0,0,0,0.8); padding: 12px 24px; border-radius: 50px;
@@ -24,9 +17,9 @@
     }
     #start-btn {
       position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(135deg, #667eea, #764ba2); color: white;
-      border: none; padding: 18px 40px; font-size: 18px; border-radius: 50px;
-      cursor: pointer; z-index: 1000; font-weight: 600;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white; border: none; padding: 18px 40px; font-size: 18px;
+      border-radius: 50px; cursor: pointer; z-index: 1000; font-weight: 600;
     }
     .weather-panel {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -60,7 +53,7 @@
   <a-scene
     xrlayers
     background="transparent"
-    renderer="colorManagement: true; antialias: true; alpha: true;"
+    renderer="alpha: true; antialias: true; colorManagement: true;"
     xr-mode-ui="enabled: false"
     webxr="mode: immersive-ar; referenceSpaceType: local;"
     embedded
@@ -82,7 +75,7 @@
 
     <a-camera position="0 1.6 0" camera="far: 1000"></a-camera>
 
-    <!-- Шар неба (Sky Effects) – весь контент тут буде поверх відео -->
+    <!-- Шар неба (Sky Effects) -->
     <a-entity xrlayerscene="name: sky; edgeSmoothness: 0.15;">
       <a-sphere id="weatherSky"
                 radius="500"
@@ -91,7 +84,7 @@
       </a-sphere>
     </a-entity>
 
-    <!-- Рухома хмара – додаємо в той самий шар, щоб вона теж була поверх відео -->
+    <!-- Рухома хмара (також у шарі неба, щоб була поверх відео) -->
     <a-image id="movingCloud"
              src="#cloudTexture"
              width="2" height="2"
@@ -169,6 +162,7 @@
     } else if (cloudTex) {
       cloudTex.onload = () => cloud.setAttribute('visible', 'true');
       cloudTex.onerror = () => {
+        // Створюємо canvas-хмару як fallback
         const canvas = document.createElement('canvas');
         canvas.width = 256; canvas.height = 256;
         const ctx = canvas.getContext('2d');
@@ -239,6 +233,7 @@
       });
     });
 
+    // Розблокування аудіо (перший дотик)
     function unlockAudio() {
       Object.values(sounds).forEach(s => {
         if (s) { s.load(); s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(()=>{}); }
